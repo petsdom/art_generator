@@ -17,7 +17,7 @@ function ImageGenerator() {
     }, 1000);
 
     fetch(
-      "https://api-inference.huggingface.co/models/prompthero/openjourney",
+      "https://api-inference.huggingface.co/models/prompthero/openjourney-v2",
       {
         method: "POST",
         headers: {
