@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import api from "./api";
 
 function ImageGenerator() {
@@ -6,15 +6,51 @@ function ImageGenerator() {
   const [imageURL, setImageURL] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
   const [countingDown, setCountingDown] = useState(false);
+  const [disabled, setDisabled] = useState(false);
+
+  useEffect(() => {
+    // Check if there's a saved expiration time in localStorage
+    const savedExpirationTime = localStorage.getItem("expirationTime");
+    if (savedExpirationTime) {
+      const expirationTime = parseInt(savedExpirationTime);
+      const timeLeft = Math.max(0, expirationTime - Date.now());
+      if (timeLeft > 0) {
+        // If the saved expiration time has not yet passed, start the countdown
+        setTimeLeft(timeLeft / 1000);
+        setCountingDown(true);
+        setDisabled(true);
+        const timer = setInterval(() => {
+          setTimeLeft((prevTime) => prevTime - 1);
+        }, 1000);
+        setTimeout(() => {
+          clearInterval(timer);
+          setCountingDown(false);
+          setDisabled(false);
+          localStorage.removeItem("expirationTime");
+        }, timeLeft * 1000);
+      } else {
+        // If the saved expiration time has passed, clear the saved value
+        localStorage.removeItem("expirationTime");
+      }
+    }
+  }, []);
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    setDisabled(true);
     setCountingDown(true);
-    setTimeLeft(5); // Set the timer to 10 seconds
+    setTimeLeft(60);
 
     const timer = setInterval(() => {
       setTimeLeft((prevTime) => prevTime - 1);
     }, 1000);
+
+    setTimeout(() => {
+      clearInterval(timer);
+      setCountingDown(false);
+      setDisabled(false);
+      localStorage.removeItem("expirationTime");
+    }, 60000);
 
     fetch(
       "https://api-inference.huggingface.co/models/prompthero/openjourney-v2",
@@ -30,9 +66,11 @@ function ImageGenerator() {
       .then((res) => res.blob())
       .then((blob) => {
         setImageURL(window.URL.createObjectURL(blob));
-        clearInterval(timer);
-        setCountingDown(false);
       });
+
+    // Save the expiration time to localStorage
+    const expirationTime = Date.now() + 60000;
+    localStorage.setItem("expirationTime", expirationTime.toString());
   };
 
   const handleInputChange = (event) => {
@@ -86,51 +124,56 @@ function ImageGenerator() {
             border: "none",
             boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.2)",
           }}
+          disabled={disabled} // Disable the button if `disabled` is true
         >
           Generate Image
         </button>
-      </form>
-
+        </form>
       {countingDown && (
-        <div
-          style={{
-            marginBottom: "20px",
-            fontSize: "1.2rem",
-            fontWeight: "bold",
-          }}
-        >
-          {timeLeft > 0
-            ? `Generating image in ${timeLeft} seconds...`
-            : "Generating image..."}
+            <div
+              style={{
+                marginBottom: "20px",
+                fontSize: "1.2rem",
+                fontWeight: "bold",
+              }}
+            >
+              {timeLeft > 0
+                ? `Generating image in ${timeLeft} seconds...`
+                : "Generating image..."}
+            </div>
+          )}
+    
+    {imageURL && (
+            <div
+            style={{
+              boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.5)",
+              borderRadius: "5px",
+              overflow: "hidden",
+            }}
+            >
+              <img
+                src={imageURL}
+                alt="Generated Image"
+                style={{ width: "500px", height: "500px", objectFit: "cover" }}
+                
+              />
+               
+        
+    
+    
+               <button onClick={handleDownload}>Download Image</button>
+            </div>
+          )}
+          
         </div>
-      )}
+        
+        );
+        
+      }
 
-      {imageURL && (
-        <div
-        style={{
-          boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.5)",
-          borderRadius: "5px",
-          overflow: "hidden",
-        }}
-        >
-          <img
-            src={imageURL}
-            alt="Generated Image"
-            style={{ width: "500px", height: "500px", objectFit: "cover" }}
-            
-          />
-           
-    
-
-
-           <button onClick={handleDownload}>Download Image</button>
-        </div>
-      )}
-      
-    </div>
-    
-    );
-    
-  }
+        
+    export default ImageGenerator;
+         
   
-export default ImageGenerator;
+
+           
