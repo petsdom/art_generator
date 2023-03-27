@@ -53,7 +53,7 @@ function ImageGenerator() {
     }, 60000);
 
     fetch(
-      "https://api-inference.huggingface.co/models/prompthero/openjourney-v2",
+      "https://api-inference.huggingface.co/models/prompthero/openjourney-v4",
       {
         method: "POST",
         headers: {
